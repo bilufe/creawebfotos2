@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Gerador de PDF - Fotografias do Relatório</title>
+  <link rel="manifest" href="manifest.json" />
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>Gerador de Fotografias do Relatório</h1>
+</header>
+<main>
+  <section class="controls">
+    <label class="file-btn">
+      Selecionar imagens
+      <input type="file" id="fileInput" accept="image/*" multiple>
+    </label>
+    <div class="inline">
+      <label> Nº do Relatório: <input id="reportNumber" placeholder="xxxx/7-xxxxxx-x"></label>
+      <label>Fotos por página:
+        <select id="photosPerPage">
+          <option value="2" selected>2</option>
+          <option value="1">1</option>
+        </select>
+      </label>
+      <button id="generatePdf">Gerar PDF</button>
+      <button id="btnReinicio" onclick="resetApp()">Limpar</button>
+    </div>
+  </section>
+
+  <section id="gallery"></section>
+</main>
+
+<footer>
+  <small>Este aplicativo foi desenvolvido por Rodrigo Zimmermann.</small>
+</footer>
+
+<!-- Local or CDN libraries -->
+<script>
+  (function(){
+    function loadScript(src, onload){
+      var s=document.createElement('script'); s.src=src; s.onload=onload; s.onerror=function(){console.warn('Falha ao carregar',src);};
+      document.head.appendChild(s);
+    }
+    loadScript('./libs/jspdf.umd.min.js', function(){ console.log('jsPDF local carregado'); });
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js', function(){ console.log('jsPDF CDN carregado'); });
+  })();
+</script>
+
+  <script>
+    // Registra o service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(() => console.log('Service Worker registrado com sucesso.'))
+        .catch(err => console.error('Erro ao registrar Service Worker:', err));
+    }
+  </script>
+
+<script src="app.js"></script>
+</body>
+</html>
