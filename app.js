@@ -173,6 +173,10 @@ async function generateWithJsPDF(reportNumber, jsPDFClass, photosPerPage){
   }
   const outName = `Fotos_RF_${reportNumber.replace(/\s+/g,'_') || 'relatorio'}${letrasAleatorias(3)}.pdf`.replace(/[:\/\?<>\*|"]/g,'_');
   doc.save(outName);
+
+  // 🔴 Liberação explícita de memória (Chrome precisa disso)
+doc.internal.pages = [];
+doc.internal.pageSize = null;
 }
 
 function blobToDataURL(blob){

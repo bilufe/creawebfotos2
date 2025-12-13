@@ -9,7 +9,7 @@
 </head>
 <body>
 <header>
-  <h1>Gerador de Fotografias do Relatório</h1>
+  <h1>Gerador do Arquivo de Fotografias</h1>
 </header>
 <main>
   <section class="controls">
@@ -18,7 +18,7 @@
       <input type="file" id="fileInput" accept="image/*" multiple>
     </label>
     <div class="inline">
-      <label> Nº do Relatório: <input id="reportNumber" placeholder="xxxx/7-xxxxxx-x"></label>
+      <label> Nº do Relatório de Fiscalização: <input id="reportNumber" placeholder="xxxx/7-xxxxxx-x"></label>
       <label>Fotos por página:
         <select id="photosPerPage">
           <option value="2" selected>2</option>
@@ -26,16 +26,16 @@
         </select>
       </label>
       <button id="generatePdf">Gerar PDF</button>
-      <button id="btnReinicio" onclick="resetApp()">Limpar</button>
+    <button id="btnReinicio" onclick="resetApp()">Limpar</button>
     </div>
   </section>
 
   <section id="gallery"></section>
+
+
 </main>
 
-<footer>
-  <small>Este aplicativo foi desenvolvido por Rodrigo Zimmermann.</small>
-</footer>
+
 
 <!-- Local or CDN libraries -->
 <script>
