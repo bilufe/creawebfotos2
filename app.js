@@ -172,16 +172,10 @@ async function generateWithJsPDF(reportNumber, jsPDFClass, photosPerPage){
     }
   }
   const outName = `Fotos_RF_${reportNumber.replace(/\s+/g,'_') || 'relatorio'}${letrasAleatorias(3)}.pdf`.replace(/[:\/\?<>\*|"]/g,'_');
-  
 
-  if (isChromeAndroid()) {
-  const blob = doc.output('blob');
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-} else {
+   // Salva o arquivo
   doc.save(outName);
-}
+
 
   // 🔴 Liberação explícita de memória (Chrome precisa disso)
 doc.internal.pages = [];
@@ -214,10 +208,6 @@ function resetApp() {
   photosPerPageSelect.value = '2'; // ou o padrão desejado
 }
 
-function isChromeAndroid() {
-  return /Android/.test(navigator.userAgent) &&
-         /Chrome/.test(navigator.userAgent);
-}
 
 
 renderGallery();
