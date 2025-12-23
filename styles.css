@@ -48,6 +48,10 @@ main {
   cursor: pointer
 }
 
+.file-btn:hover {
+  border: 1px solid #836b02;
+}
+
 .file-btn input {
   display: none
 }
@@ -95,8 +99,6 @@ main {
 
 #botoes {
   margin-top: 20px;
-  ;
-
 
 }
 
@@ -111,7 +113,7 @@ main {
   padding: .375rem .75rem;
   border-radius: .25rem;
   font-weight: bold;
-
+  height: 37px;
   text-align: center;
   vertical-align: middle;
   font-size: .875rem;
@@ -121,25 +123,33 @@ main {
 }
 
 #reportNumber {
-  border: 3px solid rgb(230, 225, 208);
+  border: 1px dashed #0000003b;
   width: auto;
-  height: 30px;
-  border-radius: 3px;
+  height: 39px;
+  border-radius: 8px;
+  padding: 9px 9px;
+  font-size: .875rem;
+  text-align: center;
+}
 
+.estilo1 {
+  border: 1px dashed #0000003b;
+  background-color: white;
+  width: auto;
+  height: 35px;
+  border-radius: 8px;
+  padding: 9px 9px;
+  font-size: .875rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.estilo1:hover {
+  border: 1px solid #836b02;
 }
 
 #reportNumber:hover {
-  border: 3px solid #836b02;
-}
-
-#photosPerPage {
-  border: 3px solid transparent;
-  font-weight: bold;
-  cursor: pointer
-}
-
-#photosPerPage:hover {
-  border: 3px solid #836b02;
+  border: 1px solid #836b02;
 }
 
 .controls button:hover {
@@ -171,15 +181,21 @@ main {
   }
 }
 
-
-#rf_or_diligencia,
-#data-fisc {
-  border: 3px solid rgb(230, 225, 208);
-  width: auto;
-  height: 30px;
-  border-radius: 3px;
+#tipoDocumento {
+  background-color: white;
+  padding: 9px 9px;
+  border: 1px dashed #0000003b;
+  border-radius: 8px;
+  text-align: center;
   cursor: pointer;
+}
 
+#tipoDocumento:hover {
+  border: 1px solid #836b02;
+}
+
+#espaco {
+  margin: 5px;
 }
 
 #config {
@@ -190,6 +206,17 @@ main {
   padding-bottom: 5px;
 }
 
-#data-fisc:hover {
-  border: 3px solid #836b02;
+.actions button {
+  cursor: pointer;
 }
+
+footer {
+  font-size: 12px;
+  background-image: linear-gradient(#013d7c, #003b77, #01366c);
+  text-align: center;
+  box-sizing: border-box;
+  border-bottom: 2px solid #c19e00;
+  color: white;
+  padding: 2px 2px;
+}
+

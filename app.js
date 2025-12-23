@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataFormatada = hoje.toISOString().split('T')[0];
 
     input.value = dataFormatada;
+
 });
 
 
@@ -13,7 +14,7 @@ const fileInput = document.getElementById('fileInput');
 const generatePdfBtn = document.getElementById('generatePdf');
 const reportNumberInput = document.getElementById('reportNumber');
 const photosPerPageSelect = document.getElementById('photosPerPage');
-const rfOrDil = document.getElementById('rf_or_diligencia');
+const tpDoc = document.getElementById('tipoDocumento');
 
 let items = []; // {id, file, dataUrl, caption, order}
 
@@ -50,10 +51,12 @@ function renderGallery() {
     const actions = document.createElement('div'); actions.className = 'actions';
     const up = document.createElement('button'); up.textContent = '↑'; up.title = 'Subir'; up.addEventListener('click', () => moveItem(it.id, -1));
     const down = document.createElement('button'); down.textContent = '↓'; down.title = 'Descer'; down.addEventListener('click', () => moveItem(it.id, 1));
-    const remove = document.createElement('button'); remove.textContent = 'Remover'; remove.addEventListener('click', () => { items = items.filter(x => x.id !== it.id); renderGallery(); });
+    const remove = document.createElement('button'); remove.textContent = 'Remover'; remove.addEventListener('click', () => {if(confirm("Tem certeza que deseja remover a imagem?")){items = items.filter(x => x.id !== it.id); renderGallery();}});
+    remove.style = "background-color: red; color: white;"
     actions.appendChild(up); actions.appendChild(down); actions.appendChild(remove);
     card.appendChild(img); card.appendChild(input); card.appendChild(actions);
     gallery.appendChild(card);
+    exibirTamanho();
   });
 }
 
@@ -111,11 +114,21 @@ function canvasToBlob(canvas, quality) {
 }
 
 generatePdfBtn.addEventListener('click', async () => {
-  if (items.length === 0) { alert('Nenhuma imagem.'); return; }
+  if (items.length === 0) { 
+    alert('Nenhuma imagem.'); 
+    return; 
+  }
+  if (items.length > 11) {
+    const confirmar = confirm('Você selecionou mais de 11 imagens, o arquivo final poderá ultrapassar 10 mb. Continuar?');
+    if (!confirmar) return;
+  }
   const reportNumber = reportNumberInput.value.trim() || 'xxxx/7-xxxxxx-x';
   const photosPerPage = parseInt(photosPerPageSelect.value);
   const jsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : (window.jsPDF || null);
-  if (!jsPDF) { alert('Biblioteca jsPDF não carregada.'); return; }
+  if (!jsPDF) { 
+    alert('Biblioteca jsPDF não carregada.'); 
+    return; 
+  }
   await generateWithJsPDF(reportNumber, jsPDF, photosPerPage);
 });
 
@@ -136,13 +149,15 @@ async function generateWithJsPDF(reportNumber, jsPDFClass, photosPerPage) {
 
   function addHeaderFooter(pdf) {
     pdf.setFontSize(10);
-    if (rfOrDil.value === 'rf'){
+    if (tpDoc.value === 'rf'){
       pdf.text(`Fotografias do Relatório de Fiscalização nº ${reportNumber}`, margin, 10);
-    } else {
+    } else if (tpDoc.value === 'diligencia') {
       pdf.text(`Fotografias da diligência nº ${reportNumber}`, margin, 10);
+    } else {
+      pdf.text(`Fotografias do protocolo nº ${reportNumber}`, margin, 10);
     }
     
-    pdf.setFontSize(8);
+    pdf.setFontSize(10);
     pdf.text(`${dateStr}`, margin, pageH - 6);
   }
 
@@ -226,5 +241,12 @@ function resetApp() {
 }
 
 
+// O cálculo de tamanho está considerando testes realizados durante o uso do aplicativo.
+// Foi verificado que 11 imagens geram arquivo menor que 10 mb, então 11 imagens é seguro utilizar.
+
+function exibirTamanho(){
+  let tamanho = ((items.length * 900)/1000).toFixed(2);
+  document.getElementById('qtdFiles').innerHTML = `Quantidade de imagens: ${items.length} . Tamanho estimado: ${tamanho} Mb`;
+}
 
 renderGallery();

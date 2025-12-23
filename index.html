@@ -7,6 +7,7 @@
   <title>Gerador de PDF das Imagens da Fiscalização</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="favicon.png" type="image/png">
 </head>
 
 <body>
@@ -15,19 +16,20 @@
   </header>
   <main>
     <section class="controls">
-      
+
       <div class="inline" id="inline1">
         <label class="file-btn">
-        Selecionar imagens
-        <input type="file" id="fileInput" accept="image/*" multiple>
-      </label>
-        <select id="rf_or_diligencia">
+          Selecionar imagens
+          <input type="file" id="fileInput" accept="image/*" multiple>
+        </label>
+        <select id="tipoDocumento">
           <option value="rf" selected>Relatório de Fisc. nº.</option>
           <option value="diligencia">Diligência nº.</option>
+          <option value="protocolo">Protocolo nº.</option>
         </select>
         <input id="reportNumber" placeholder="xxxx/7-xxxxxx-x">
 
-        
+
 
         <button id="generatePdf">Gerar PDF</button>
         <button id="btnReinicio" onclick="resetApp()">Limpar</button>
@@ -38,20 +40,19 @@
     <section id="gallery"></section>
 
     <section id="config">
-      <label id="labelFotos">Fotos por página:
-          <select id="photosPerPage">
-            <option value="2" selected>2</option>
-            <option value="1">1</option>
-          </select>
-        </label>
-        <label id="labelData">Data da fisc. / diligência:
-          <input type="date" placeholder="Selecione a data" id="data-fisc" required>
-        </label>
+      <label for="photosPerPage" id="labelFotos">Fotos por página:</label>
+        <select class="estilo1" id="photosPerPage">
+          <option value="2" selected>2</option>
+          <option value="1">1</option>
+        </select>
+      <span id="espaco"></span>
+      <label for="data-fisc" id="labelData">Data:</label>
+      <input class="estilo1" type="date" placeholder="Selecione a data" id="data-fisc" required>
     </section>
   </main>
 
   <footer>
-
+    <p id="qtdFiles"></p>
   </footer>
 
   <!-- Local or CDN libraries -->
@@ -61,7 +62,7 @@
         var s = document.createElement('script'); s.src = src; s.onload = onload; s.onerror = function () { console.warn('Falha ao carregar', src); };
         document.head.appendChild(s);
       }
-      loadScript('./libs/jspdf.umd.min.js', function () { console.log('jsPDF local carregado'); });
+      loadScript('./jspdf.umd.min.js', function () { console.log('jsPDF local carregado'); });
       loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js', function () { console.log('jsPDF CDN carregado'); });
     })();
   </script>
