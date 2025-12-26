@@ -183,8 +183,8 @@ generatePdfBtn.addEventListener('click', async () => {
     alert('Nenhuma imagem.');
     return;
   }
-  if (items.length > 11) {
-    const confirmar = confirm('Você selecionou mais de 11 imagens, o arquivo final poderá ultrapassar 10 mb. Continuar?');
+  if (recalcularTamanhoPDF() > 11) {
+    const confirmar = confirm('O arquivo pode ficar maior que 10 mb, que é o limite imposto pelo Sistema Corporativo. Continuar?');
     if (!confirmar) return;
   }
   const reportNumber = reportNumberInput.value.trim() || 'xxxx/7-xxxxxx-x';
