@@ -63,7 +63,7 @@ function calculaTamanhoPDF(e) {
 
 }
 
-function recalcularTamanhoPDF (){
+function recalcularTamanhoPDF() {
   let tamanhoTotalArq = 0;
 
   items.forEach(item => {
@@ -72,7 +72,7 @@ function recalcularTamanhoPDF (){
 
   let tamanhoTotalPDF = 0.176;
   tamanhoTotalPDF += parseFloat((tamanhoTotalArq / (1024 * 1024)).toFixed(2));
-  
+
   return tamanhoTotalPDF;
 }
 
@@ -95,8 +95,27 @@ function renderGallery() {
     const actions = document.createElement('div'); actions.className = 'actions';
     const up = document.createElement('button'); up.textContent = '↑'; up.title = 'Subir'; up.addEventListener('click', () => moveItem(it.id, -1));
     const down = document.createElement('button'); down.textContent = '↓'; down.title = 'Descer'; down.addEventListener('click', () => moveItem(it.id, 1));
-    const openBtn = document.createElement('button'); openBtn.textContent = '🔍'; openBtn.title = 'Abrir imagem em nova aba'; openBtn.addEventListener('click' , () => window.open(it.dataUrl, '_blank'));
+    const openBtn = document.createElement('button'); openBtn.textContent = '🔍'; openBtn.title = 'Abrir imagem em nova aba';
     const remove = document.createElement('button'); remove.title = "Apagar este elemento"; remove.textContent = '❌'; remove.addEventListener('click', () => { if (confirm("Tem certeza que deseja remover a imagem?")) { items = items.filter(x => x.id !== it.id); renderGallery(); } });
+
+    // Código para o botão openBtn permitir exibir a imagem em uma nova aba
+    // O Google Chrome impede que a página exiba diretamente, por iso é necessário converter em Blob
+    openBtn.addEventListener('click', () => {
+      const byteString = atob(it.dataUrl.split(',')[1]);
+      const mimeString = it.dataUrl.split(',')[0].split(':')[1].split(';')[0];
+
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+
+      const blob = new Blob([ab], { type: mimeString });
+      const url = URL.createObjectURL(blob);
+
+      window.open(url, '_blank');
+    });
 
     actions.appendChild(up); actions.appendChild(down); actions.appendChild(openBtn); actions.appendChild(remove);
     card.appendChild(img); card.appendChild(input); card.appendChild(actions);
