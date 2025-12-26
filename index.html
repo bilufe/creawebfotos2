@@ -18,21 +18,21 @@
     <section class="controls">
 
       <div class="inline" id="inline1">
-        <label class="file-btn">
+        <label class="file-btn" title="Carregar imagens">
           Selecionar imagens
           <input type="file" id="fileInput" accept="image/*" multiple>
         </label>
-        <select id="tipoDocumento">
+        <select id="tipoDocumento" title="Selecione o tipo de documento.">
           <option value="rf" selected>Relatório de Fisc. nº.</option>
           <option value="diligencia">Diligência nº.</option>
           <option value="protocolo">Protocolo nº.</option>
         </select>
-        <input id="reportNumber" placeholder="xxxx/7-xxxxxx-x">
+        <input id="reportNumber" placeholder="xxxx/7-xxxxxx-x" title="Informe o número do documento.">
 
 
 
-        <button id="generatePdf">Gerar PDF</button>
-        <button id="btnReinicio" onclick="resetApp()">Limpar</button>
+        <button id="generatePdf" title="Gerar o arquivo PDF e salvar no dispositivo.">Gerar PDF</button>
+        <button id="btnReinicio" onclick="resetApp()" title="Reiniciar o uso do aplicativo">Limpar</button>
       </div>
 
     </section>
@@ -52,7 +52,7 @@
   </main>
 
   <footer>
-    <p id="qtdFiles"></p>
+    <p id="qtdFiles">Desenvolvido por Rodrigo Zimmermann - 2025</p>
   </footer>
 
   <!-- Local or CDN libraries -->

@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('data-fisc');
+  const input = document.getElementById('data-fisc');
 
-    const hoje = new Date();
-    const dataFormatada = hoje.toISOString().split('T')[0];
+  const hoje = new Date();
+  const dataFormatada = hoje.toISOString().split('T')[0];
 
-    input.value = dataFormatada;
+  input.value = dataFormatada;
 
 });
 
@@ -20,7 +20,10 @@ let items = []; // {id, file, dataUrl, caption, order}
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
 
+// Ao carregar os arquivos, o código será executado
 fileInput.addEventListener('change', async (e) => {
+
+  // Intera os arquivos e cria um array a partir dos arquivos que o usuário carregou
   const files = Array.from(e.target.files || []);
   for (const f of files) {
     if (!f.type.startsWith('image/')) continue;
@@ -28,9 +31,44 @@ fileInput.addEventListener('change', async (e) => {
     const dataUrl = await fileToDataURL(f);
     items.push({ id, file: f, dataUrl, caption: '', order: items.length });
   }
+
+
+  exibirTamanho(calculaTamanhoPDF(e.target));
+
   renderGallery();
   fileInput.value = '';
 });
+
+function calculaTamanhoPDF(e) {
+  // Intera os arquivos carregados pelo usuário e calcula o tamanho total em bytes;
+  let tamanhoTotalArq = 0;
+  for (let i = 0; i < e.files.length; i++) {
+    tamanhoTotalArq += e.files[i].size;
+  }
+
+  // Calcula o tamanho total do PDF em Mb. 
+  // A variável inicia com 180 kb (0,176 mb), que é o tamanho que o formato PDF incrementa em média
+  // Na sequência, o código acresce o valor dos arquivos, sempre convertendo para Mb.
+  // Utiliza-se parseFloat pois o .toFixed retorna uma string, assim o parseFloat garante que
+  // a variável vai armazenar um número.
+  let tamanhoTotalPDF = 0.176;
+  tamanhoTotalPDF += parseFloat((((tamanhoTotalArq) / 1024) / 1024).toFixed(2));
+  return tamanhoTotalPDF;
+
+}
+
+function recalcularTamanhoPDF (){
+  let tamanhoTotalArq = 0;
+
+  items.forEach(item => {
+    tamanhoTotalArq += item.file.size;
+  });
+
+  let tamanhoTotalPDF = 0.176;
+  tamanhoTotalPDF += parseFloat((tamanhoTotalArq / (1024 * 1024)).toFixed(2));
+  
+  return tamanhoTotalPDF;
+}
 
 async function fileToDataURL(file) {
   return new Promise(res => {
@@ -51,12 +89,13 @@ function renderGallery() {
     const actions = document.createElement('div'); actions.className = 'actions';
     const up = document.createElement('button'); up.textContent = '↑'; up.title = 'Subir'; up.addEventListener('click', () => moveItem(it.id, -1));
     const down = document.createElement('button'); down.textContent = '↓'; down.title = 'Descer'; down.addEventListener('click', () => moveItem(it.id, 1));
-    const remove = document.createElement('button'); remove.textContent = 'Remover'; remove.addEventListener('click', () => {if(confirm("Tem certeza que deseja remover a imagem?")){items = items.filter(x => x.id !== it.id); renderGallery();}});
+    const remove = document.createElement('button'); remove.title = "Apagar este elemento"; remove.textContent = 'Remover'; remove.addEventListener('click', () => { if (confirm("Tem certeza que deseja remover a imagem?")) { items = items.filter(x => x.id !== it.id); renderGallery(); } });
     remove.style = "background-color: red; color: white;"
     actions.appendChild(up); actions.appendChild(down); actions.appendChild(remove);
     card.appendChild(img); card.appendChild(input); card.appendChild(actions);
     gallery.appendChild(card);
-    exibirTamanho();
+
+    exibirTamanho(recalcularTamanhoPDF());
   });
 }
 
@@ -114,9 +153,9 @@ function canvasToBlob(canvas, quality) {
 }
 
 generatePdfBtn.addEventListener('click', async () => {
-  if (items.length === 0) { 
-    alert('Nenhuma imagem.'); 
-    return; 
+  if (items.length === 0) {
+    alert('Nenhuma imagem.');
+    return;
   }
   if (items.length > 11) {
     const confirmar = confirm('Você selecionou mais de 11 imagens, o arquivo final poderá ultrapassar 10 mb. Continuar?');
@@ -125,9 +164,9 @@ generatePdfBtn.addEventListener('click', async () => {
   const reportNumber = reportNumberInput.value.trim() || 'xxxx/7-xxxxxx-x';
   const photosPerPage = parseInt(photosPerPageSelect.value);
   const jsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : (window.jsPDF || null);
-  if (!jsPDF) { 
-    alert('Biblioteca jsPDF não carregada.'); 
-    return; 
+  if (!jsPDF) {
+    alert('Biblioteca jsPDF não carregada.');
+    return;
   }
   await generateWithJsPDF(reportNumber, jsPDF, photosPerPage);
 });
@@ -145,18 +184,18 @@ async function generateWithJsPDF(reportNumber, jsPDFClass, photosPerPage) {
   const [ano, mes, dia] = dataISO.split('-');
   const dateStr = `${dia}/${mes}/${ano}`;
 
-  
+
 
   function addHeaderFooter(pdf) {
     pdf.setFontSize(10);
-    if (tpDoc.value === 'rf'){
+    if (tpDoc.value === 'rf') {
       pdf.text(`Fotografias do Relatório de Fiscalização nº ${reportNumber}`, margin, 10);
     } else if (tpDoc.value === 'diligencia') {
       pdf.text(`Fotografias da diligência nº ${reportNumber}`, margin, 10);
     } else {
       pdf.text(`Fotografias do protocolo nº ${reportNumber}`, margin, 10);
     }
-    
+
     pdf.setFontSize(10);
     pdf.text(`${dateStr}`, margin, pageH - 6);
   }
@@ -241,12 +280,10 @@ function resetApp() {
 }
 
 
-// O cálculo de tamanho está considerando testes realizados durante o uso do aplicativo.
-// Foi verificado que 11 imagens geram arquivo menor que 10 mb, então 11 imagens é seguro utilizar.
-
-function exibirTamanho(){
-  let tamanho = ((items.length * 900)/1000).toFixed(2);
-  document.getElementById('qtdFiles').innerHTML = `Quantidade de imagens: ${items.length} . Tamanho estimado: ${tamanho} Mb`;
+function exibirTamanho(tam) {
+  let tamanho = tam;
+  document.getElementById('qtdFiles').innerText = `Quantidade de imagens: ${items.length} . Tamanho estimado: ${tamanho} Mb`;
+  document.getElementById('qtdFiles').title = "O tamanho final do arquivo dependerá das imagens selecionadas.";
 }
 
 renderGallery();
