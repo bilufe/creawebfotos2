@@ -8,6 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
+document.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && items.length > 0) {
+    generatePdfBtn.click();
+  }
+});
+
 
 const gallery = document.getElementById('gallery');
 const fileInput = document.getElementById('fileInput');
@@ -89,9 +95,10 @@ function renderGallery() {
     const actions = document.createElement('div'); actions.className = 'actions';
     const up = document.createElement('button'); up.textContent = '↑'; up.title = 'Subir'; up.addEventListener('click', () => moveItem(it.id, -1));
     const down = document.createElement('button'); down.textContent = '↓'; down.title = 'Descer'; down.addEventListener('click', () => moveItem(it.id, 1));
-    const remove = document.createElement('button'); remove.title = "Apagar este elemento"; remove.textContent = 'Remover'; remove.addEventListener('click', () => { if (confirm("Tem certeza que deseja remover a imagem?")) { items = items.filter(x => x.id !== it.id); renderGallery(); } });
-    remove.style = "background-color: red; color: white;"
-    actions.appendChild(up); actions.appendChild(down); actions.appendChild(remove);
+    const openBtn = document.createElement('button'); openBtn.textContent = '🔍'; openBtn.title = 'Abrir imagem em nova aba'; openBtn.addEventListener('click' , () => window.open(it.dataUrl, '_blank'));
+    const remove = document.createElement('button'); remove.title = "Apagar este elemento"; remove.textContent = '❌'; remove.addEventListener('click', () => { if (confirm("Tem certeza que deseja remover a imagem?")) { items = items.filter(x => x.id !== it.id); renderGallery(); } });
+
+    actions.appendChild(up); actions.appendChild(down); actions.appendChild(openBtn); actions.appendChild(remove);
     card.appendChild(img); card.appendChild(input); card.appendChild(actions);
     gallery.appendChild(card);
 
@@ -282,7 +289,7 @@ function resetApp() {
 
 function exibirTamanho(tam) {
   let tamanho = tam;
-  document.getElementById('qtdFiles').innerText = `Quantidade de imagens: ${items.length} . Tamanho estimado: ${tamanho} Mb`;
+  document.getElementById('qtdFiles').innerText = `Quantidade de imagens: ${items.length} . Tamanho estimado: ${tamanho.toFixed(2)} Mb`;
   document.getElementById('qtdFiles').title = "O tamanho final do arquivo dependerá das imagens selecionadas.";
 }
 

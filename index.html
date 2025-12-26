@@ -18,8 +18,8 @@
     <section class="controls">
 
       <div class="inline" id="inline1">
-        <label class="file-btn" title="Carregar imagens">
-          Selecionar imagens
+        <label class="file-btn" title="Carregar imagens" for="fileInput">Selecionar imagens
+
           <input type="file" id="fileInput" accept="image/*" multiple>
         </label>
         <select id="tipoDocumento" title="Selecione o tipo de documento.">
@@ -41,10 +41,10 @@
 
     <section id="config">
       <label for="photosPerPage" id="labelFotos">Fotos por página:</label>
-        <select class="estilo1" id="photosPerPage">
-          <option value="2" selected>2</option>
-          <option value="1">1</option>
-        </select>
+      <select class="estilo1" id="photosPerPage">
+        <option value="2" selected>2</option>
+        <option value="1">1</option>
+      </select>
       <span id="espaco"></span>
       <label for="data-fisc" id="labelData">Data:</label>
       <input class="estilo1" type="date" placeholder="Selecione a data" id="data-fisc" required>
