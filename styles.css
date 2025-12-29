@@ -174,17 +174,7 @@ main {
   color: white;
 }
 
-@media (max-width:900px) {
-  .controls {
-    flex-direction: column;
-    align-items: stretch
-  }
 
-  .inline {
-    flex-direction: column;
-    align-items: stretch
-  }
-}
 
 #tipoDocumento {
   background-color: white;
@@ -223,15 +213,6 @@ footer {
   padding: 2px 2px;
 }
 
-a {
-  text-decoration: none;
-  color: #fff;
-}
-
-a:hover{
-  font-weight: bold;
-}
-
 .actions button {
   padding: 2px 5px;
   margin: 0 2px;
@@ -244,4 +225,21 @@ a:hover{
 
 .actions button:hover {
   transform: scale(1.1);
+}
+
+
+
+/* Design responsivo */
+
+@media (max-width:900px) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch
+  }
+
+  .inline {
+    flex-direction: column;
+    align-items: stretch
+  }
+  
 }

@@ -1,5 +1,5 @@
 {
-  "name": "App Fotos PDF Offline com Legendas",
+  "name": "Gerador do arquivo PDF de fotografias",
   "short_name": "FotosPDF",
   "start_url": "./index.html",
   "display": "standalone",

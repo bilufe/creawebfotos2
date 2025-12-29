@@ -4,7 +4,9 @@ const FILES_TO_CACHE = [
   '/index.html',
   '/styles.css',
   '/app.js',
-  '/jspdf.umd.min.js'
+  '/jspdf.umd.min.js',
+  '/favicon.png',
+  '/marca-creapr-horizontal-normal-transparente.png'
 ];
 
 self.addEventListener('install', event => {
