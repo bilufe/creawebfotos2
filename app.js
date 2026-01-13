@@ -1,20 +1,23 @@
+/**********************
+ * INICIALIZAÇÃO
+ **********************/
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('data-fisc');
-
   const hoje = new Date();
-  const dataFormatada = hoje.toISOString().split('T')[0];
-
-  input.value = dataFormatada;
-
+  input.value = hoje.toISOString().split('T')[0];
 });
 
+
+// Tecla ENTER ativa o botão "Gerar PDF"
 document.addEventListener('keypress', (e) => {
   if (e.key === 'Enter' && items.length > 0) {
     generatePdfBtn.click();
   }
 });
 
-
+/**********************
+ * ELEMENTOS DE UI
+ **********************/
 const gallery = document.getElementById('gallery');
 const fileInput = document.getElementById('fileInput');
 const generatePdfBtn = document.getElementById('generatePdf');
@@ -22,61 +25,282 @@ const reportNumberInput = document.getElementById('reportNumber');
 const photosPerPageSelect = document.getElementById('photosPerPage');
 const tpDoc = document.getElementById('tipoDocumento');
 
-let items = []; // {id, file, dataUrl, caption, order}
+let items = [];
+// {
+//   id,
+//   file,
+//   dataUrl,
+//   caption,
+//   order,
+//   compressedBlob,
+//   compressedSize
+// }
 
-function uid() { return Math.random().toString(36).slice(2, 9); }
+function uid() {
+  return Math.random().toString(36).slice(2, 9);
+}
 
-// Ao carregar os arquivos, o código será executado
+/**********************
+ * UPLOAD DE IMAGENS
+ **********************/
 fileInput.addEventListener('change', async (e) => {
-
-  // Intera os arquivos e cria um array a partir dos arquivos que o usuário carregou
   const files = Array.from(e.target.files || []);
+
   for (const f of files) {
     if (!f.type.startsWith('image/')) continue;
+
     const id = uid();
     const dataUrl = await fileToDataURL(f);
-    items.push({ id, file: f, dataUrl, caption: '', order: items.length });
+
+    items.push({
+      id,
+      file: f,
+      dataUrl,
+      caption: '',
+      order: items.length,
+      compressedBlob: null,
+      compressedSize: 0
+    });
   }
 
-
-  exibirTamanho(calculaTamanhoPDF(e.target));
-
-  renderGallery();
   fileInput.value = '';
+  renderGallery();
+  await exibirTamanhoEstimado();
 });
 
-function calculaTamanhoPDF(e) {
-  // Intera os arquivos carregados pelo usuário e calcula o tamanho total em bytes;
-  let tamanhoTotalArq = 0;
-  for (let i = 0; i < e.files.length; i++) {
-    tamanhoTotalArq += e.files[i].size;
+/**********************
+ * GALERIA
+ **********************/
+function renderGallery() {
+  gallery.innerHTML = '';
+  items.sort((a, b) => a.order - b.order);
+
+  items.forEach(it => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const img = document.createElement('img');
+    img.className = 'thumb';
+    img.src = it.dataUrl;
+
+    const input = document.createElement('input');
+    input.className = 'caption';
+    input.placeholder = 'Legenda...';
+    input.value = it.caption;
+    input.addEventListener('input', e => it.caption = e.target.value);
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+
+    const up = document.createElement('button');
+    up.textContent = '↑';
+    up.onclick = () => moveItem(it.id, -1);
+
+    const down = document.createElement('button');
+    down.textContent = '↓';
+    down.onclick = () => moveItem(it.id, 1);
+
+    const openBtn = document.createElement('button');
+    openBtn.textContent = '🔍';
+    openBtn.onclick = () => abrirImagem(it.dataUrl);
+
+    const remove = document.createElement('button');
+    remove.textContent = '❌';
+    remove.onclick = async () => {
+      if (confirm('Remover imagem?')) {
+        items = items.filter(x => x.id !== it.id);
+        renderGallery();
+        await exibirTamanhoEstimado();
+      }
+    };
+
+    actions.append(up, down, openBtn, remove);
+    card.append(img, input, actions);
+    gallery.appendChild(card);
+  });
+}
+
+function moveItem(id, delta) {
+  const idx = items.findIndex(x => x.id === id);
+  if (idx < 0) return;
+
+  const newIdx = Math.max(0, Math.min(items.length - 1, idx + delta));
+  const [it] = items.splice(idx, 1);
+  items.splice(newIdx, 0, it);
+
+  items.forEach((x, i) => x.order = i);
+  renderGallery();
+  exibirTamanhoEstimado();
+}
+
+/**********************
+ * ESTIMATIVA DE TAMANHO
+ **********************/
+async function getCompressedBlob(item, targetMaxBytes = 1_000_000) {
+  if (item.compressedBlob) return item.compressedBlob;
+
+  const blob = await compressImageDataUrl(item.dataUrl, targetMaxBytes);
+  item.compressedBlob = blob;
+  item.compressedSize = blob.size;
+
+  return blob;
+}
+
+async function estimarTamanhoPDF() {
+  let total = 0;
+  for (const item of items) {
+    const blob = await getCompressedBlob(item);
+    total += blob.size;
   }
 
-  // Calcula o tamanho total do PDF em Mb. 
-  // A variável inicia com 180 kb (0,176 mb), que é o tamanho que o formato PDF incrementa em média
-  // Na sequência, o código acresce o valor dos arquivos, sempre convertendo para Mb.
-  // Utiliza-se parseFloat pois o .toFixed retorna uma string, assim o parseFloat garante que
-  // a variável vai armazenar um número.
-  let tamanhoTotalPDF = 0.176;
-  tamanhoTotalPDF += parseFloat((((tamanhoTotalArq) / 1024) / 1024).toFixed(2));
-  return tamanhoTotalPDF;
-
+  const overheadPDF = 80 * 1024;
+  return (total + overheadPDF) / (1024 * 1024);
 }
 
-function recalcularTamanhoPDF() {
-  let tamanhoTotalArq = 0;
+async function exibirTamanhoEstimado() {
+  const el = document.getElementById('qtdFiles');
 
-  items.forEach(item => {
-    tamanhoTotalArq += item.file.size;
-  });
+  if (items.length === 0) {
+    el.innerText = 'Nenhuma imagem carregada.';
+    return;
+  }
 
-  let tamanhoTotalPDF = 0.176;
-  tamanhoTotalPDF += parseFloat((tamanhoTotalArq / (1024 * 1024)).toFixed(2));
-
-  return tamanhoTotalPDF;
+  const mb = await estimarTamanhoPDF();
+  el.innerText = `Quantidade de imagens: ${items.length} · Tamanho estimado: ${mb.toFixed(2)} MB`;
+  el.title = 'Estimativa baseada nas imagens comprimidas.';
 }
 
-async function fileToDataURL(file) {
+/**********************
+ * COMPRESSÃO
+ **********************/
+async function compressImageDataUrl(dataUrl, targetMaxBytes) {
+  const img = await loadImage(dataUrl);
+
+  let canvas = document.createElement('canvas');
+  let ctx = canvas.getContext('2d');
+
+  let w = img.width;
+  let h = img.height;
+
+  const maxDim = 2000;
+  if (Math.max(w, h) > maxDim) {
+    const scale = maxDim / Math.max(w, h);
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+  }
+
+  canvas.width = w;
+  canvas.height = h;
+  ctx.drawImage(img, 0, 0, w, h);
+
+  let qLow = 0.4;
+  let qHigh = 0.95;
+  let q = 0.85;
+
+  let blob = await canvasToBlob(canvas, q);
+
+  for (let i = 0; i < 7; i++) {
+    if (blob.size > targetMaxBytes) {
+      qHigh = q;
+    } else {
+      qLow = q;
+    }
+    q = (qLow + qHigh) / 2;
+    blob = await canvasToBlob(canvas, q);
+  }
+
+  return blob;
+}
+
+/**********************
+ * GERAÇÃO DO PDF
+ **********************/
+generatePdfBtn.addEventListener('click', async () => {
+  if (items.length === 0) {
+    alert('Nenhuma imagem.');
+    return;
+  }
+
+  const tamanho = await estimarTamanhoPDF();
+  if (tamanho > 10) {
+    if (!confirm(`Arquivo estimado com ${tamanho.toFixed(2)} MB. Continuar?`)) return;
+  }
+
+  const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+  if (!jsPDF) {
+    alert('jsPDF não carregado.');
+    return;
+  }
+
+  await generateWithJsPDF(jsPDF);
+});
+
+async function generateWithJsPDF(jsPDFClass) {
+  const reportNumber = reportNumberInput.value.trim() || 'xxxx/7-xxxxxx-x';
+  const photosPerPage = parseInt(photosPerPageSelect.value);
+
+  const doc = new jsPDFClass({ unit: 'mm', format: 'a4' });
+  const margin = 12;
+  const pageW = 210;
+  const pageH = 297;
+  const usableH = pageH - margin * 2 - 20;
+
+  const dataISO = document.getElementById('data-fisc').value;
+  const [y, m, d] = dataISO.split('-');
+  const dateStr = `${d}/${m}/${y}`;
+
+  function header() {
+    doc.setFontSize(10);
+    const txt =
+      tpDoc.value === 'rf'
+        ? `Fotografias do Relatório de Fiscalização nº ${reportNumber}`
+        : tpDoc.value === 'diligencia'
+        ? `Fotografias da diligência nº ${reportNumber}`
+        : `Fotografias do protocolo nº ${reportNumber}`;
+
+    doc.text(txt, margin, 10);
+    doc.text(dateStr, margin, pageH - 6);
+  }
+
+  const perPage = photosPerPage === 1 ? 1 : 2;
+
+  for (let i = 0; i < items.length; i += perPage) {
+    if (i > 0) doc.addPage();
+    header();
+
+    for (let col = 0; col < perPage; col++) {
+      const item = items[i + col];
+      if (!item) break;
+
+      const blob = await getCompressedBlob(item);
+      const dataUrl = await blobToDataURL(blob);
+      const img = await loadImage(dataUrl);
+
+      const slotH = usableH / perPage - 8;
+      const ratio = Math.min(186 / img.width, slotH / img.height);
+      const wmm = img.width * ratio;
+      const hmm = img.height * ratio;
+
+      const x = margin + (186 - wmm) / 2;
+      const y = margin + 12 + col * (slotH + 20);
+
+      doc.rect(x, y, wmm, hmm);
+      doc.addImage(dataUrl, 'JPEG', x, y, wmm, hmm, undefined, 'FAST');
+      doc.text(item.caption || ' ', margin + 2, y + hmm + 6, { maxWidth: 186 });
+    }
+  }
+
+  const out = `Fotos_RF_${reportNumber.replace(/[^\w]/g, '_')}.pdf`;
+  doc.save(out);
+
+  doc.internal.pages = [];
+  doc.internal.pageSize = null;
+}
+
+/**********************
+ * UTILITÁRIOS
+ **********************/
+function fileToDataURL(file) {
   return new Promise(res => {
     const r = new FileReader();
     r.onload = () => res(r.result);
@@ -84,232 +308,40 @@ async function fileToDataURL(file) {
   });
 }
 
-function renderGallery() {
-  gallery.innerHTML = '';
-  items.sort((a, b) => a.order - b.order);
-  items.forEach(it => {
-    const card = document.createElement('div'); card.className = 'card'; card.draggable = true; card.dataset.id = it.id;
-    const img = document.createElement('img'); img.className = 'thumb'; img.src = it.dataUrl;
-    const input = document.createElement('input'); input.className = 'caption'; input.placeholder = 'Legenda...'; input.value = it.caption;
-    input.addEventListener('input', e => { it.caption = e.target.value; });
-    const actions = document.createElement('div'); actions.className = 'actions';
-    const up = document.createElement('button'); up.textContent = '↑'; up.title = 'Subir'; up.addEventListener('click', () => moveItem(it.id, -1));
-    const down = document.createElement('button'); down.textContent = '↓'; down.title = 'Descer'; down.addEventListener('click', () => moveItem(it.id, 1));
-    const openBtn = document.createElement('button'); openBtn.textContent = '🔍'; openBtn.title = 'Abrir imagem em nova aba';
-    const remove = document.createElement('button'); remove.title = "Apagar este elemento"; remove.textContent = '❌'; remove.addEventListener('click', () => { if (confirm("Tem certeza que deseja remover a imagem?")) { items = items.filter(x => x.id !== it.id); renderGallery(); } });
-
-    // Código para o botão openBtn permitir exibir a imagem em uma nova aba
-    // O Google Chrome impede que a página exiba diretamente, por iso é necessário converter em Blob
-    openBtn.addEventListener('click', () => {
-      const byteString = atob(it.dataUrl.split(',')[1]);
-      const mimeString = it.dataUrl.split(',')[0].split(':')[1].split(';')[0];
-
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-
-      const blob = new Blob([ab], { type: mimeString });
-      const url = URL.createObjectURL(blob);
-
-      window.open(url, '_blank');
-    });
-
-    actions.appendChild(up); actions.appendChild(down); actions.appendChild(openBtn); actions.appendChild(remove);
-    card.appendChild(img); card.appendChild(input); card.appendChild(actions);
-    gallery.appendChild(card);
-
-    exibirTamanho(recalcularTamanhoPDF());
+function blobToDataURL(blob) {
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.readAsDataURL(blob);
   });
 }
 
-function moveItem(id, delta) {
-  const idx = items.findIndex(x => x.id === id);
-  if (idx < 0) return;
-  const newIdx = Math.max(0, Math.min(items.length - 1, idx + delta));
-  const [it] = items.splice(idx, 1);
-  items.splice(newIdx, 0, it);
-  items.forEach((x, i) => x.order = i);
-  renderGallery();
-}
-
-// Compress image to ~1 MB
-async function compressImageDataUrl(dataUrl, targetMaxBytes = 1_000_000) {
-  const img = await loadImage(dataUrl);
-  let canvas = document.createElement('canvas');
-  let ctx = canvas.getContext('2d');
-  let [w, h] = [img.width, img.height];
-  const maxDim = 2000;
-  if (Math.max(w, h) > maxDim) {
-    const scale = maxDim / Math.max(w, h);
-    w = Math.round(w * scale); h = Math.round(h * scale);
-  }
-  canvas.width = w; canvas.height = h;
-  ctx.drawImage(img, 0, 0, w, h);
-
-  let qLow = 0.3, qHigh = 0.95, q = 0.9;
-  let blob = await canvasToBlob(canvas, q);
-  for (let i = 0; i < 8; i++) {
-    if (blob.size <= targetMaxBytes) { qLow = q; q = (q + qHigh) / 2; }
-    else { qHigh = q; q = (q + qLow) / 2; }
-    blob = await canvasToBlob(canvas, q);
-  }
-  while (blob.size > targetMaxBytes && (w > 400 || h > 400)) {
-    w = Math.round(w * 0.9); h = Math.round(h * 0.9);
-    canvas.width = w; canvas.height = h;
-    ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, w, h);
-    blob = await canvasToBlob(canvas, qLow);
-  }
-  return blob;
-}
-
-function loadImage(dataUrl) {
+function loadImage(src) {
   return new Promise((res, rej) => {
-    const i = new Image();
-    i.onload = () => res(i);
-    i.onerror = rej;
-    i.src = dataUrl;
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = src;
   });
 }
+
 function canvasToBlob(canvas, quality) {
   return new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
 }
 
-generatePdfBtn.addEventListener('click', async () => {
-  if (items.length === 0) {
-    alert('Nenhuma imagem.');
-    return;
-  }
-  if (recalcularTamanhoPDF() > 11) {
-    const confirmar = confirm('O arquivo pode ficar maior que 10 mb, que é o limite imposto pelo Sistema Corporativo. Continuar?');
-    if (!confirmar) return;
-  }
-  const reportNumber = reportNumberInput.value.trim() || 'xxxx/7-xxxxxx-x';
-  const photosPerPage = parseInt(photosPerPageSelect.value);
-  const jsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : (window.jsPDF || null);
-  if (!jsPDF) {
-    alert('Biblioteca jsPDF não carregada.');
-    return;
-  }
-  await generateWithJsPDF(reportNumber, jsPDF, photosPerPage);
-});
-
-async function generateWithJsPDF(reportNumber, jsPDFClass, photosPerPage) {
-  const doc = new jsPDFClass({ unit: 'mm', format: 'a4' });
-  const pageW = 210, pageH = 297;
-  const margin = 12;
-  const usableW = pageW - margin * 2;
-  const usableH = pageH - margin * 2 - 20;
-
-  //Manipulação do input de data
-  const dataISO = document.getElementById('data-fisc').value;
-  if (!dataISO) return;
-  const [ano, mes, dia] = dataISO.split('-');
-  const dateStr = `${dia}/${mes}/${ano}`;
-
-
-
-  function addHeaderFooter(pdf) {
-    pdf.setFontSize(10);
-    if (tpDoc.value === 'rf') {
-      pdf.text(`Fotografias do Relatório de Fiscalização nº ${reportNumber}`, margin, 10);
-    } else if (tpDoc.value === 'diligencia') {
-      pdf.text(`Fotografias da diligência nº ${reportNumber}`, margin, 10);
-    } else {
-      pdf.text(`Fotografias do protocolo nº ${reportNumber}`, margin, 10);
-    }
-
-    pdf.setFontSize(10);
-    pdf.text(`${dateStr}`, margin, pageH - 6);
-  }
-
-  const perPage = photosPerPage === 1 ? 1 : 2;
-  for (let i = 0; i < items.length; i += perPage) {
-    if (i > 0) doc.addPage();
-    addHeaderFooter(doc);
-
-    for (let col = 0; col < perPage; col++) {
-      const idx = i + col;
-      if (idx >= items.length) break;
-      const item = items[idx];
-      const blob = await compressImageDataUrl(item.dataUrl, 1_000_000);
-      const dataUrl = await blobToDataURL(blob);
-      const img = await loadImage(dataUrl);
-
-      // Calcula o espaço disponível por imagem
-      const slotH = (usableH / perPage) - (perPage === 2 ? 8 : 0);
-      const slotW = usableW;
-      const x = margin;
-      const y = margin + 12 + col * (slotH + 20); // espaço entre imagens aumentado
-
-      // Ajusta a proporção
-      const ratio = Math.min(slotW / img.width, slotH / img.height);
-      const wmm = img.width * ratio;
-      const hmm = img.height * ratio;
-      const xpos = x + (slotW - wmm) / 2;
-      const ypos = y + (slotH - hmm) / 2 - 5; // leve ajuste vertical
-
-      // Desenha borda em volta da imagem
-      doc.setDrawColor(0);
-      doc.setLineWidth(0.3);
-      doc.rect(xpos, ypos, wmm, hmm);
-
-      // Insere imagem
-      doc.addImage(dataUrl, 'JPEG', xpos, ypos, wmm, hmm, undefined, 'FAST');
-
-      // Adiciona legenda logo abaixo da imagem
-      const captionY = ypos + hmm + 6; // 6 mm abaixo
-      doc.setFontSize(10);
-      doc.setTextColor(40);
-      doc.text(item.caption || ' ', margin + 2, captionY, { maxWidth: usableW - 4 });
-    }
-  }
-  const outName = `Fotos_RF_${reportNumber.replace(/\s+/g, '_') || 'relatorio'}${letrasAleatorias(3)}.pdf`.replace(/[:\/\?<>\*|"]/g, '_');
-
-
-  // Salva o arquivo
-  doc.save(outName);
-
-
-  // 🔴 Liberação explícita de memória (Chrome precisa disso)
-  doc.internal.pages = [];
-  doc.internal.pageSize = null;
-
-
-}
-
-function blobToDataURL(blob) {
-  return new Promise(res => {
-    const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob);
-  });
-}
-
-function letrasAleatorias(qtd = 3) {
-  const chars = 'abcdefghijklmnopqrstuvwxyz';
-  let resultado = '';
-
-  for (let i = 0; i < qtd; i++) {
-    resultado += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-
-  return resultado;
+function abrirImagem(dataUrl) {
+  const b = atob(dataUrl.split(',')[1]);
+  const mime = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+  const buf = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) buf[i] = b.charCodeAt(i);
+  const blob = new Blob([buf], { type: mime });
+  window.open(URL.createObjectURL(blob), '_blank');
 }
 
 function resetApp() {
   items = [];
   gallery.innerHTML = '';
   reportNumberInput.value = '';
-  photosPerPageSelect.value = '2'; // ou o padrão desejado
+  photosPerPageSelect.value = '2';
+  exibirTamanhoEstimado();
 }
-
-
-function exibirTamanho(tam) {
-  let tamanho = tam;
-  document.getElementById('qtdFiles').innerText = `Quantidade de imagens: ${items.length} . Tamanho estimado: ${tamanho.toFixed(2)} Mb`;
-  document.getElementById('qtdFiles').title = "O tamanho final do arquivo dependerá das imagens selecionadas.";
-}
-
-renderGallery();
