@@ -330,7 +330,7 @@ async function generateWithJsPDF(jsPDFClass) {
     }
   }
 
-  const out = `Fotos_RF_${reportNumber.replace(/[^\w]/g, '_')}.pdf`;
+  const out = `Fotos_RF_${reportNumber.replace(/[^\w]/g, '_')+uid()}.pdf`;
   doc.save(out);
 
   doc.internal.pages = [];
