@@ -25,6 +25,8 @@ const reportNumberInput = document.getElementById('reportNumber');
 const photosPerPageSelect = document.getElementById('photosPerPage');
 const tpDoc = document.getElementById('tipoDocumento');
 
+const defaultGeneratePdfText = generatePdfBtn.textContent || 'Gerar PDF';
+
 let items = [];
 // {
 //   id,
@@ -36,6 +38,12 @@ let items = [];
 //   compressedSize
 // }
 
+
+function setGeneratePdfLoading(isLoading) {
+  generatePdfBtn.disabled = isLoading;
+  generatePdfBtn.textContent = isLoading ? 'Aguarde...' : defaultGeneratePdfText;
+}
+
 function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
@@ -44,11 +52,26 @@ function uid() {
  * UPLOAD DE IMAGENS
  **********************/
 fileInput.addEventListener('change', async (e) => {
-  const files = Array.from(e.target.files || []);
 
-  for (const f of files) {
-    if (!f.type.startsWith('image/')) continue;
+  const files = Array
+    .from(e.target.files || [])
+    .filter(f => f.type.startsWith('image/'));
 
+  const restantes = 25 - items.length;
+
+  if (restantes <= 0) {
+    alert('Limite máximo de 25 imagens já atingido.');
+    fileInput.value = '';
+    return;
+  }
+
+  const filesPermitidos = files.slice(0, restantes);
+
+  if (files.length > restantes) {
+    alert(`Somente ${restantes} imagens adicionais foram carregadas.`);
+  }
+
+  for (const f of filesPermitidos) {
     const id = uid();
     const dataUrl = await fileToDataURL(f);
 
@@ -66,12 +89,15 @@ fileInput.addEventListener('change', async (e) => {
   fileInput.value = '';
   renderGallery();
   await exibirTamanhoEstimado();
+
 });
 
 /**********************
  * GALERIA
  **********************/
 function renderGallery() {
+  setGeneratePdfLoading(true);
+
   gallery.innerHTML = '';
   items.sort((a, b) => a.order - b.order);
 
@@ -118,6 +144,7 @@ function renderGallery() {
     card.append(img, input, actions);
     gallery.appendChild(card);
   });
+  setGeneratePdfLoading(false);
 }
 
 function moveItem(id, delta) {
@@ -133,7 +160,7 @@ function moveItem(id, delta) {
   exibirTamanhoEstimado();
 }
 
-/**********************
+/***********************
  * ESTIMATIVA DE TAMANHO
  **********************/
 async function getCompressedBlob(item, targetMaxBytes = 1_000_000) {
@@ -147,14 +174,21 @@ async function getCompressedBlob(item, targetMaxBytes = 1_000_000) {
 }
 
 async function estimarTamanhoPDF() {
-  let total = 0;
-  for (const item of items) {
-    const blob = await getCompressedBlob(item);
-    total += blob.size;
-  }
+  try {
+    setGeneratePdfLoading(true);
+    let total = 0;
+    for (const item of items) {
+      const blob = await getCompressedBlob(item);
+      total += blob.size;
+    }
 
-  const overheadPDF = 80 * 1024;
-  return (total + overheadPDF) / (1024 * 1024);
+    const overheadPDF = 80 * 1024;
+    return (total + overheadPDF) / (1024 * 1024);
+  } catch (error) {
+    throw new Error("Não foi possível estimar o tamanho do PDF.");
+  } finally {
+    setGeneratePdfLoading(false);
+  }
 }
 
 async function exibirTamanhoEstimado() {
@@ -162,12 +196,18 @@ async function exibirTamanhoEstimado() {
 
   if (items.length === 0) {
     el.innerText = 'Nenhuma imagem carregada.';
+    setGeneratePdfLoading(false);
     return;
   }
 
-  const mb = await estimarTamanhoPDF();
-  el.innerText = `Quantidade de imagens: ${items.length} · Tamanho estimado: ${mb.toFixed(2)} MB`;
-  el.title = 'Estimativa baseada nas imagens comprimidas.';
+  setGeneratePdfLoading(true);
+  try {
+    const mb = await estimarTamanhoPDF();
+    el.innerText = `Quantidade de imagens: ${items.length} · Tamanho estimado: ${mb.toFixed(2)} MB`;
+    el.title = 'Estimativa baseada nas imagens comprimidas.';
+  } finally {
+    setGeneratePdfLoading(false);
+  }
 }
 
 /**********************
@@ -255,8 +295,8 @@ async function generateWithJsPDF(jsPDFClass) {
       tpDoc.value === 'rf'
         ? `Fotografias do Relatório de Fiscalização nº ${reportNumber}`
         : tpDoc.value === 'diligencia'
-        ? `Fotografias da diligência nº ${reportNumber}`
-        : `Fotografias do protocolo nº ${reportNumber}`;
+          ? `Fotografias da diligência nº ${reportNumber}`
+          : `Fotografias do protocolo nº ${reportNumber}`;
 
     doc.text(txt, margin, 10);
     doc.text(dateStr, margin, pageH - 6);
