@@ -68,27 +68,35 @@ fileInput.addEventListener('change', async (e) => {
   const filesPermitidos = files.slice(0, restantes);
 
   if (files.length > restantes) {
-    alert(`Somente ${restantes} imagens adicionais foram carregadas.`);
+    alert(`⚠️ Somente ${restantes} imagens adicionais foram carregadas.`);
   }
 
+  let successCount = 0;
   for (const f of filesPermitidos) {
-    const id = uid();
-    const dataUrl = await fileToDataURL(f);
-
-    items.push({
-      id,
-      file: f,
-      dataUrl,
-      caption: '',
-      order: items.length,
-      compressedBlob: null,
-      compressedSize: 0
-    });
+    try {
+      const id = uid();
+      const dataUrl = await fileToDataURL(f);
+  
+      items.push({
+        id,
+        file: f,
+        dataUrl,
+        caption: '',
+        order: items.length,
+        compressedBlob: null,
+        compressedSize: 0
+      });
+      successCount++;
+    } catch (error) {
+      ErrorHandler.handle(error, `Imagem: ${f.name}`);
+    }
   }
 
-  fileInput.value = '';
-  renderGallery();
-  await exibirTamanhoEstimado();
+  if (successCount > 0) {
+    fileInput.value = '';
+    renderGallery();
+    await exibirTamanhoEstimado();
+  } 
 
 });
 
@@ -166,11 +174,16 @@ function moveItem(id, delta) {
 async function getCompressedBlob(item, targetMaxBytes = 1_000_000) {
   if (item.compressedBlob) return item.compressedBlob;
 
-  const blob = await compressImageDataUrl(item.dataUrl, targetMaxBytes);
-  item.compressedBlob = blob;
-  item.compressedSize = blob.size;
-
-  return blob;
+ try {
+   const blob = await compressImageDataUrl(item.dataUrl, targetMaxBytes);
+   item.compressedBlob = blob;
+   item.compressedSize = blob.size;
+ 
+   return blob;
+ } catch (error) {
+  ErrorHandler.handle(error, 'Compressão de imagem');
+  throw error;
+ }
 }
 
 async function estimarTamanhoPDF() {
@@ -257,22 +270,26 @@ async function compressImageDataUrl(dataUrl, targetMaxBytes) {
  **********************/
 generatePdfBtn.addEventListener('click', async () => {
   if (items.length === 0) {
-    alert('Nenhuma imagem.');
+    ErrorHandler.showAlert('⚠️ Nenhuma imagem carregada.');
     return;
   }
 
-  const tamanho = await estimarTamanhoPDF();
-  if (tamanho > 10) {
-    if (!confirm(`Arquivo estimado com ${tamanho.toFixed(2)} MB. Continuar?`)) return;
+  try {
+    const tamanho = await estimarTamanhoPDF();
+    if (tamanho > 10) {
+      if (!confirm(`Arquivo estimado com ${tamanho.toFixed(2)} MB. Continuar?`)) return;
+    }
+  
+    const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+    if (!jsPDF) {
+      alert('jsPDF não carregado.');
+      return;
+    }
+  
+    await generateWithJsPDF(jsPDF);
+  } catch (error) {
+    ErrorHandler.handle(error, 'Geração de PDF');
   }
-
-  const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
-  if (!jsPDF) {
-    alert('jsPDF não carregado.');
-    return;
-  }
-
-  await generateWithJsPDF(jsPDF);
 });
 
 async function generateWithJsPDF(jsPDFClass) {
@@ -281,7 +298,6 @@ async function generateWithJsPDF(jsPDFClass) {
 
   const doc = new jsPDFClass({ unit: 'mm', format: 'a4' });
   const margin = 12;
-  const pageW = 210;
   const pageH = 297;
   const usableH = pageH - margin * 2 - 20;
 
@@ -349,9 +365,11 @@ function fileToDataURL(file) {
 }
 
 function blobToDataURL(blob) {
-  return new Promise(res => {
+  return new Promise((res, rej) => {
     const r = new FileReader();
     r.onload = () => res(r.result);
+    r.onerror = () => rej(new Error (`Falha ao ler arquivo: ${file.name}`));
+    r.onabort = () => rej(new Error(`Leitura cancelada: ${file.name}`));
     r.readAsDataURL(blob);
   });
 }
@@ -384,4 +402,17 @@ function resetApp() {
   reportNumberInput.value = '';
   photosPerPageSelect.value = '2';
   exibirTamanhoEstimado();
+}
+
+// Tratamento centralizado de erros
+const ErrorHandler = {
+  handle(error, context = '') {
+    console.error(`[${context}]`, error);
+    const msg = error?.message || 'Erro desconhecido';
+    this.showAlert(`❌ Erro${context ? ` (${context})` : ''}: ${msg}`);
+  },
+
+  showAlert(msg){
+    alert(msg);
+  }
 }
