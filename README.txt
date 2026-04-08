@@ -12,7 +12,10 @@ Atualizações em 30/03/2026:
 - Criada uma função que altera o texto do botão "Gerar PDF" para "Aguarde..." enquanto o aplicativo estiver realizando o processamento. Trata-se de uma melhoria na interface do usuário, pois anteriormente não havia nenhuma informação para o usuário lhe informando que deve aguardar o processamento terminar.
 - Agora é gerado um novo de arquivo único a cada execução, isso é garantido pela função uuid() que já estava implementada no código.
 
+Atualizações em 07/04/2026:
+- Criada uma função para centralização de mensagens de erros;
+- Implementação de blocos try e catch em partes do código.
+
 LISTA DE AFAZERES:
 - Reimplementar o aplicativo utilizando classes do JavaScript;
-- Utilizar blocos try e catch para tratamento de erros;
 - Modularizar o aplicativo.
