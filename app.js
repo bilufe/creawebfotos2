@@ -128,18 +128,27 @@ function renderGallery() {
 
     const up = document.createElement('button');
     up.textContent = '↑';
+    up.title = 'Mover imagem para cima';
     up.onclick = () => moveItem(it.id, -1);
 
     const down = document.createElement('button');
     down.textContent = '↓';
+    down.title = 'Mover imagem para baixo';
     down.onclick = () => moveItem(it.id, 1);
+
+    const rotateBtn = document.createElement('button');
+    rotateBtn.textContent = '🔄';
+    rotateBtn.title = "Girar a imagem em 90 graus";
+    rotateBtn.onclick = () => girarImagem(it.id);
 
     const openBtn = document.createElement('button');
     openBtn.textContent = '🔍';
+    openBtn.title = 'Visualizar imagem em tamanho maior - abre em nova aba';
     openBtn.onclick = () => abrirImagem(it.dataUrl);
 
     const remove = document.createElement('button');
     remove.textContent = '❌';
+    remove.title = 'Remover esta imagem';
     remove.onclick = async () => {
       if (confirm('Remover imagem?')) {
         items = items.filter(x => x.id !== it.id);
@@ -148,7 +157,7 @@ function renderGallery() {
       }
     };
 
-    actions.append(up, down, openBtn, remove);
+    actions.append(up, down, rotateBtn, openBtn, remove);
     card.append(img, input, actions);
     gallery.appendChild(card);
   });
@@ -302,8 +311,15 @@ async function generateWithJsPDF(jsPDFClass) {
   const usableH = pageH - margin * 2 - 20;
 
   const dataISO = document.getElementById('data-fisc').value;
-  const [y, m, d] = dataISO.split('-');
-  const dateStr = `${d}/${m}/${y}`;
+
+  // Tratamento para evitar estouro/erro caso a data venha vazia ou em formato inesperado 
+  let dateStr = '';
+  if (dataISO && dataISO.includes('-')){
+    const [y, m, d] = dataISO.split('-');
+    dateStr = `${d}/${m}/${y}`;
+  } else {
+    dateStr = new Date().toLocaleDateString('pt-BR');
+  }
 
   function header() {
     doc.setFontSize(10);
@@ -404,6 +420,45 @@ function resetApp() {
   exibirTamanhoEstimado();
 }
 
+async function girarImagem(id){
+  const item = items.find(x => x.id === id);
+  if (!item) return;
+
+  try {
+    setGeneratePdfLoading(true);
+
+    const img = await loadImage(item.dataUrl);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Inverte a largura e a altura para a rotação de 90 graus
+    canvas.width = img.height;
+    canvas.height = img.width;
+
+    // Move o eixo para o centro, rotaciona e desenha a imagem
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(90 * Math.PI / 180);
+    ctx.drawImage(img, -img.width / 2, - img.height / 2);
+
+    // Obtém o novo DataURL da imagem rotacionada
+    const newDataUrl = canvas.toDataURL('image/jpeg', 1.0);
+
+    // Atualiza o item
+    item.dataUrl = newDataUrl;
+    item.compressedBlob = null; // Invalida o cache do blob comprimido antigo
+    item.compressedSize = 0;
+
+    // Faz nova renderização da galeria e recalcula o tamanho
+    renderGallery();
+    await exibirTamanhoEstimado();
+  } catch (error){
+    ErrorHandler.handle(error, 'Rotação de imagem');
+  } finally {
+    setGeneratePdfLoading(false);
+  }
+
+}
+
 // Tratamento centralizado de erros
 const ErrorHandler = {
   handle(error, context = '') {
@@ -415,4 +470,4 @@ const ErrorHandler = {
   showAlert(msg){
     alert(msg);
   }
-}
+};
