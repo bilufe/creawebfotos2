@@ -16,6 +16,9 @@ Atualizações em 07/04/2026:
 - Criada uma função para centralização de mensagens de erros;
 - Implementação de blocos try e catch em partes do código.
 
+Atualização em 28/08/2026:
+- Criada funcionalidade de girar as imagens.
+
 LISTA DE AFAZERES:
 - Reimplementar o aplicativo utilizando classes do JavaScript;
 - Modularizar o aplicativo.
